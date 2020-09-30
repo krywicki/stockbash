@@ -197,9 +197,10 @@ function draw_row() {
 function display_stock_summaries() {
 
     declare -a stocks
-
-    stocks[0]="$(get_global_quote $1)"
-    stocks[1]="$(get_global_quote $2)"
+    for symbol in $@
+    do 
+        stocks+=("$(get_global_quote $symbol)")
+    done
 
     draw_row "${stocks[@]}"
 }
@@ -234,5 +235,5 @@ function display_stock_summary() {
 
 check_for_dependencies
 
-display_stock_summaries AAPL IBM
+display_stock_summaries AAPL IBM WORK
 
