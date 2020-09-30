@@ -88,12 +88,17 @@ function get_global_quote() {
     echo ${data[@]}
 }
 
+function get_field() {
+    declare -a array=($1)
+    echo "${array[$2]}"
+}
 
 ##############################################################################
 # Functions
 ##############################################################################
 
-WIDTH=30
+MAX_ROW_ITEMS=3 # max num of items to display in row
+WIDTH=30        # 30 chars wide boxes
 TLC="\u250C"    # top left corner
 TRC="\u2510"    # top right corner
 BLC="\u2514"    # bottom left corner
@@ -103,35 +108,100 @@ VLL="\u2524"    # vertical line left
 VL="\u2502"     # vertical line
 HL="\u2500"     # horizontal line
 
-# Draws header of box with stock symbol
-# Usage: draw_header [str]
-function draw_header() {
-    local symbol=$1
-    local change=$2
-    let local pad="$WIDTH - 1"
-    let local padr="($WIDTH - ${#change})"
+QUOTE_FIELD_SYMBOL=0
+QUOTE_FIELD_OPEN=1
+QUOTE_FIELD_HIGH=2
+QUOTE_FIELD_LOW=3
+QUOTE_FIELD_PRICE=4
+QUOTE_FIELD_VOLUME=5
+QUOTE_FIELD_LATEST=6
+QUOTE_FIELD_PREV_CLOSE=7
+QUOTE_FIELD_CHANGE=8
+QUOTE_FIELD_CHANGE_PERCENT=9
 
-    printf "$TLC"
-    printf "$HL%.0s" $(seq 1 $WIDTH)
-    printf "$TRC\n"
-    printf "$VL%-${padr}s%s$VL\n" "$symbol" "$change"
-    printf "$VLR"
-    printf "$HL%.0s" $(seq 1 $WIDTH)
-    printf "$VLL\n"
+function draw_row_headers() {
+    for i in $(seq 1 $#)
+    do
+        printf "$TLC"
+        printf "$HL%.0s" $(seq 1 $WIDTH)
+        printf "$TRC"
+    done
+
+    printf "\n"
+
+    for i in $(seq 1 $#) 
+    do
+        declare -a s=(${!i})
+        let local pad="$WIDTH"
+        printf "$VL%-${pad}s%s$VL" "${s[$QUOTE_FIELD_SYMBOL]}"
+    done
+
+    printf "\n"
+
+    for i in $(seq 1 $#)
+    do 
+        printf "$VLR"
+        printf "$HL%.0s" $(seq 1 $WIDTH)
+        printf "$VLL"
+    done
+
+    printf "\n"
 }
 
-function draw_footer() {
-    printf "$BLC"
-    printf "$HL%.0s" $(seq 1 $WIDTH)
-    printf "$BRC\n"
+function draw_row_fields() {
+    local field_name=$1;shift
+    local field_index=$1;shift
+    declare -a values
+
+    for i in $(seq 1 $#)
+    do 
+        declare s=(${!i})
+        values+=(${s[$field_index]})
+    done
+
+    for val in ${values[@]}
+    do
+        let local padr="($WIDTH - ${#val} - 1)"
+        printf "$VL%-${padr}s%s $VL" $field_name $val
+    done
+    printf "\n"
 }
 
-function draw_field() {
-    local name=$1
-    local val=$2
-    let local padr=($WIDTH - ${#val} - 1)
-    printf "$VL%-${padr}s%s $VL\n" $1 $2
+function draw_row_footers() {
+    for i in $(seq 1 $1)
+    do
+        printf "$BLC"
+        printf "$HL%.0s" $(seq 1 $WIDTH)
+        printf "$BRC"
+    done
+    printf "\n"
+}
 
+function draw_row() {
+    local len=$#
+    local field_index=0
+
+
+    draw_row_headers "${@}"
+
+    # draw fields
+    draw_row_fields "Price" "$QUOTE_FIELD_PRICE" "${@}"
+    draw_row_fields "Open" "$QUOTE_FIELD_OPEN" "${@}"
+    draw_row_fields "High" "$QUOTE_FIELD_HIGH" "${@}"
+    draw_row_fields "Low" "$QUOTE_FIELD_LOW" "${@}"
+    draw_row_fields "Prev-Close" "$QUOTE_FIELD_PREV_CLOSE" "${@}"
+
+    draw_row_footers $#
+}
+
+function display_stock_summaries() {
+
+    declare -a stocks
+
+    stocks[0]="$(get_global_quote $1)"
+    stocks[1]="$(get_global_quote $2)"
+
+    draw_row "${stocks[@]}"
 }
 
 # Presents stock summary detailing current stock price, 
@@ -150,9 +220,6 @@ function display_stock_summary() {
     local change=${csv[8]}
     local changeper=${csv[9]}
 
-    echo $changeper | cat -v
-
-
     draw_header $symbol "$changeper"
     draw_field "Price" "\$$price"
     draw_field "Open" "\$$open"
@@ -167,13 +234,5 @@ function display_stock_summary() {
 
 check_for_dependencies
 
-display_stock_summary AAPL
-display_stock_summary WORK
-
-#display_stock_summary AB
-#display_stock_summary ABC
-#display_stock_summary ABCD
-#display_stock_summary ABCDE
-#display_stock_summary ABCDEF
-
+display_stock_summaries AAPL IBM
 
