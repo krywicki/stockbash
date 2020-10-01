@@ -108,18 +108,28 @@ VLL="\u2524"    # vertical line left
 VL="\u2502"     # vertical line
 HL="\u2500"     # horizontal line
 
-QUOTE_FIELD_SYMBOL=0
-QUOTE_FIELD_OPEN=1
-QUOTE_FIELD_HIGH=2
-QUOTE_FIELD_LOW=3
-QUOTE_FIELD_PRICE=4
-QUOTE_FIELD_VOLUME=5
-QUOTE_FIELD_LATEST=6
-QUOTE_FIELD_PREV_CLOSE=7
-QUOTE_FIELD_CHANGE=8
-QUOTE_FIELD_CHANGE_PERCENT=9
+##################################
+# Global Quote Fields
+##################################
+GQUOTE_FIELD_SYMBOL=0
+GQUOTE_FIELD_OPEN=1
+GQUOTE_FIELD_HIGH=2
+GQUOTE_FIELD_LOW=3
+GQUOTE_FIELD_PRICE=4
+GQUOTE_FIELD_VOLUME=5
+GQUOTE_FIELD_LATEST=6
+GQUOTE_FIELD_PREV_CLOSE=7
+GQUOTE_FIELD_CHANGE=8
+GQUOTE_FIELD_CHANGE_PERCENT=9
 
+###############################################################
+# Draws Headers in a row for each stock quote info passed in
+# Usage:
+#   draw_row_headers [global quote info] [global quote info] ... 
+###############################################################
 function draw_row_headers() {
+
+    # draw box top
     for i in $(seq 1 $#)
     do
         printf "$TLC"
@@ -129,6 +139,7 @@ function draw_row_headers() {
 
     printf "\n"
 
+    # draw stock symbol
     for i in $(seq 1 $#) 
     do
         declare -a s=(${!i})
@@ -138,6 +149,7 @@ function draw_row_headers() {
 
     printf "\n"
 
+    # draw box bottom
     for i in $(seq 1 $#)
     do 
         printf "$VLR"
@@ -148,25 +160,62 @@ function draw_row_headers() {
     printf "\n"
 }
 
+###############################################################
+# Formats value of a global quote field
+# Usage:
+#   formate_global_quote_field [field index] [global quote info] 
+# Returs formatted value
+###############################################################
+function format_global_quote_field() {
+    local       findex="$1";shift
+    declare -a  qinfo="(${@})"
+    local       fval="${qinfo[$findex]}"
+
+    case $findex in
+        $GQUOTE_FIELD_OPEN | $GQUOTE_FIELD_HIGH | $GQUOTE_FIELD_LOW |\
+        $GQUOTE_FIELD_PRICE | $GQUOTE_FIELD_PREV_CLOSE)
+            printf "$%'.2f" $fval
+            ;;
+        $GQUOTE_FIELD_CHANGE_PERCENT)
+            printf "%s\%" $fval
+            ;;
+        *)
+            echo "$fval"
+            ;;
+    esac
+}
+
+###############################################################
+# Draws fields in a row for each global stock quote info passed in
+# Usage:
+#   draw_row_fields [global quote info] [global quote info] ... 
+###############################################################
 function draw_row_fields() {
-    local field_name=$1;shift
-    local field_index=$1;shift
+    local fname="$1";shift
+    local findex="$1";shift
     declare -a values
 
     for i in $(seq 1 $#)
     do 
-        declare s=(${!i})
-        values+=(${s[$field_index]})
+        declare quote_info=(${!i})
+        
+        local fmtd_val="$(format_global_quote_field $findex ${quote_info[@]})"
+        values+=($fmtd_val)
     done
 
     for val in ${values[@]}
     do
         let local padr="($WIDTH - ${#val} - 1)"
-        printf "$VL%-${padr}s%s $VL" $field_name $val
+        printf "$VL%-${padr}s%s $VL" "$fname" $val
     done
     printf "\n"
 }
 
+###############################################################
+# Draws row footers the specified num of times 
+# Usage:
+#   draw_row_footers [num of footers] 
+###############################################################
 function draw_row_footers() {
     for i in $(seq 1 $1)
     do
@@ -177,19 +226,20 @@ function draw_row_footers() {
     printf "\n"
 }
 
+###############################################################
+# Draws fields in a row for each global stock quote info passed in
+# Usage:
+#   draw_row_fields [global quote info] [global quote info] ... 
+###############################################################
 function draw_row() {
-    local len=$#
-    local field_index=0
-
-
     draw_row_headers "${@}"
 
     # draw fields
-    draw_row_fields "Price" "$QUOTE_FIELD_PRICE" "${@}"
-    draw_row_fields "Open" "$QUOTE_FIELD_OPEN" "${@}"
-    draw_row_fields "High" "$QUOTE_FIELD_HIGH" "${@}"
-    draw_row_fields "Low" "$QUOTE_FIELD_LOW" "${@}"
-    draw_row_fields "Prev-Close" "$QUOTE_FIELD_PREV_CLOSE" "${@}"
+    draw_row_fields "Price" "$GQUOTE_FIELD_PRICE" "${@}"
+    draw_row_fields "Open" "$GQUOTE_FIELD_OPEN" "${@}"
+    draw_row_fields "High" "$GQUOTE_FIELD_HIGH" "${@}"
+    draw_row_fields "Low" "$GQUOTE_FIELD_LOW" "${@}"
+    draw_row_fields "Prev Open" "$GQUOTE_FIELD_PREV_CLOSE" "${@}"
 
     draw_row_footers $#
 }
