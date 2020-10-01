@@ -1,9 +1,39 @@
 #!/bin/bash -e
 
+##################################
+# Vars
+##################################
 VERSION="0.0.1"
 APIKEY=${STOCKBASH_APIKEY:-missing}
 URL="https://www.alphavantage.co"
 
+##################################
+# Display Vars
+##################################
+MAX_ROW_ITEMS=3 # max num of items to display in row
+WIDTH=30        # 30 chars wide boxes
+TLC="\u250C"    # top left corner
+TRC="\u2510"    # top right corner
+BLC="\u2514"    # bottom left corner
+BRC="\u2518"    # bottom right corner
+VLR="\u251C"    # vertical line right
+VLL="\u2524"    # vertical line left
+VL="\u2502"     # vertical line
+HL="\u2500"     # horizontal line
+
+##################################
+# Global Quote Fields
+##################################
+GQUOTE_FIELD_SYMBOL=0
+GQUOTE_FIELD_OPEN=1
+GQUOTE_FIELD_HIGH=2
+GQUOTE_FIELD_LOW=3
+GQUOTE_FIELD_PRICE=4
+GQUOTE_FIELD_VOLUME=5
+GQUOTE_FIELD_LATEST=6
+GQUOTE_FIELD_PREV_CLOSE=7
+GQUOTE_FIELD_CHANGE=8
+GQUOTE_FIELD_CHANGE_PERCENT=9
 
 ##############################################################################
 # Helper Functions
@@ -53,31 +83,12 @@ function http_get() {
     echo $(eval "$cmd")
 }
 
-# Get global quote for specified symbol
-# Usage: global_quote [symbol]
-#   Example: global_quote IBM
-function get_global_quote() { 
-    echo $(http_get "$URL/query" "function=GLOBAL_QUOTE" "symbol=$1")
-}
 
-# Get as-traded daily time series (date, daily open, daily high, daily low, daily close, daily volume) for
-# specified symbol
-# Usage: time_series_daily [symbol]
-#   Example: time_series_daily AAPL
-function get_time_series_daily() {
-    echo $(http_get "$URL/query" "function=TIME_SERIES_DAILY" "symbol=$1")
-}
-
-# Get company info, financial raitios and other key mterics for equity specified. 
-# Usage: company_overiew [symbol]
-#   Example: company_overiew IBM 
-function get_company_overview {
-    echo $(http_get "$URL/query" "function=OVERVIEW" "symbol=$1")
-}
-
+###############################################################
 # Get global quote for target symbol
 # Usage: get_global_quote [symbol]
 #   Example: get_global_quote IBM
+###############################################################
 function get_global_quote() {
     local csv=$(http_get "$URL/query" "function=GLOBAL_QUOTE" "datatype=csv" "symbol=$1")
     read -r -a array <<< $csv
@@ -88,39 +99,11 @@ function get_global_quote() {
     echo ${data[@]}
 }
 
-function get_field() {
-    declare -a array=($1)
-    echo "${array[$2]}"
-}
 
 ##############################################################################
 # Functions
 ##############################################################################
 
-MAX_ROW_ITEMS=3 # max num of items to display in row
-WIDTH=30        # 30 chars wide boxes
-TLC="\u250C"    # top left corner
-TRC="\u2510"    # top right corner
-BLC="\u2514"    # bottom left corner
-BRC="\u2518"    # bottom right corner
-VLR="\u251C"    # vertical line right
-VLL="\u2524"    # vertical line left
-VL="\u2502"     # vertical line
-HL="\u2500"     # horizontal line
-
-##################################
-# Global Quote Fields
-##################################
-GQUOTE_FIELD_SYMBOL=0
-GQUOTE_FIELD_OPEN=1
-GQUOTE_FIELD_HIGH=2
-GQUOTE_FIELD_LOW=3
-GQUOTE_FIELD_PRICE=4
-GQUOTE_FIELD_VOLUME=5
-GQUOTE_FIELD_LATEST=6
-GQUOTE_FIELD_PREV_CLOSE=7
-GQUOTE_FIELD_CHANGE=8
-GQUOTE_FIELD_CHANGE_PERCENT=9
 
 ###############################################################
 # Draws Headers in a row for each stock quote info passed in
@@ -244,39 +227,32 @@ function draw_row() {
     draw_row_footers $#
 }
 
-function display_stock_summaries() {
-
+###############################################################
+# Displays global stock quotes 
+# Usage:
+#   draw_row_fields [stock symbol] ... 
+###############################################################
+function display_global_stock_quotes() {
+    # fetch stock global quotes
     declare -a stocks
     for symbol in $@
     do 
         stocks+=("$(get_global_quote $symbol)")
     done
 
-    draw_row "${stocks[@]}"
-}
+    declare -a slice=("${stocks[@]:0:$MAX_ROW_ITEMS}")
+    local pos=0
 
-# Presents stock summary detailing current stock price, 
-# Usage: display_stock_summary [symbol]
-#   Example: dispaly_stock_summary IBM
-function display_stock_summary() {
-    local csv=($(get_global_quote $1))
-    local symbol=${csv[0]}
-    local open=${csv[1]}
-    local high=${csv[2]}
-    local low=${csv[3]}
-    local price=${csv[4]}
-    local volume=${csv[5]}
-    local latest=${csv[6]}
-    local prev_close=${csv[7]}
-    local change=${csv[8]}
-    local changeper=${csv[9]}
+    # draw stocks in rows
+    while [ $pos -lt $# ]
+    do
+        # get slice from stocks and update pos
+        slice=("${stocks[@]:$pos:$MAX_ROW_ITEMS}")    
+        let pos="$pos + $MAX_ROW_ITEMS"
 
-    draw_header $symbol "$changeper"
-    draw_field "Price" "\$$price"
-    draw_field "Open" "\$$open"
-    draw_field "High" "\$$high"
-    draw_field "Low" "\$$low"
-    draw_footer 
+        # draw row of stock info
+        draw_row "${slice[@]}"
+    done
 }
 
 ########################################################
@@ -284,6 +260,5 @@ function display_stock_summary() {
 ########################################################
 
 check_for_dependencies
-
-display_stock_summaries AAPL IBM WORK
+display_global_stock_quotes AAPL IBM WORK PLUG
 
