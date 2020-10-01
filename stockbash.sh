@@ -79,8 +79,14 @@ function http_get() {
 
     # append url path
     local cmd="$cmd $url"
+    local resp=$(eval "$cmd")
 
-    echo $(eval "$cmd")
+    if [[ "$resp" == *'5 calls per minute'* ]]; then
+        printf "Rate-Exceeded %.0s" {0..10}
+        #echo "rate-exceeded"
+    else
+        echo $resp
+    fi
 }
 
 
@@ -261,4 +267,17 @@ function display_global_stock_quotes() {
 
 check_for_dependencies
 display_global_stock_quotes AAPL IBM WORK PLUG
+#display_global_stock_quotes AAPL
+
+#http_get "$URL/query" "function=GLOBAL_QUOTE" "datatype=csv" "symbol=IBM"
+#http_get "$URL/query" "function=GLOBAL_QUOTE" "datatype=csv" "symbol=IBM"
+#http_get "$URL/query" "function=GLOBAL_QUOTE" "datatype=csv" "symbol=IBM"
+#http_get "$URL/query" "function=GLOBAL_QUOTE" "datatype=csv" "symbol=IBM"
+#http_get "$URL/query" "function=GLOBAL_QUOTE" "datatype=csv" "symbol=IBM"
+#http_get "$URL/query" "function=GLOBAL_QUOTE" "datatype=csv" "symbol=IBM"
+#http_get "$URL/query" "function=GLOBAL_QUOTE" "datatype=csv" "symbol=IBM"
+#http_get "$URL/query" "function=GLOBAL_QUOTE" "datatype=csv" "symbol=IBM"
+#http_get "$URL/query" "function=GLOBAL_QUOTE" "datatype=csv" "symbol=IBM"
+#http_get "$URL/query" "function=GLOBAL_QUOTE" "datatype=csv" "symbol=IBM"
+#http_get "$URL/query" "function=GLOBAL_QUOTE" "datatype=csv" "symbol=IBM"
 
